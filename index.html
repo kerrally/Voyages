@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#d4a853">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mes Voyages">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Gestionnaire personnel de voyages">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Mes Voyages</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --card: #1c2330;
+    --border: #30363d;
+    --gold: #d4a853;
+    --gold-light: #f0c674;
+    --teal: #39d5c1;
+    --rose: #e05c7a;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --camping: #4ade80;
+    --hotel: #60a5fa;
+    --autre: #c084fc;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; display: flex; flex-direction: column; }
+
+  /* ── BOTTOM NAV ── */
+  #bottom-nav {
+    display: flex; flex-shrink: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding-bottom: var(--safe-bottom);
+    z-index: 100;
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 0.6rem 0.5rem; gap: 0.2rem;
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 0.65rem; font-weight: 500;
+    transition: color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-btn .nav-icon { font-size: 1.4rem; line-height: 1; }
+  .nav-btn.active { color: var(--gold); }
+  .nav-btn.active .nav-icon { filter: drop-shadow(0 0 6px rgba(212,168,83,0.5)); }
+
+  /* ── PAGES ── */
+  #app { flex: 1; overflow: hidden; position: relative; }
+  .page { position: absolute; inset: 0; overflow-y: auto; display: none; flex-direction: column; -webkit-overflow-scrolling: touch; }
+  .page.active { display: flex; }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    background: linear-gradient(135deg, #0d1117 0%, #1a1f2e 60%, #0d1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: calc(var(--safe-top) + 1.2rem) 1.25rem 1rem;
+    flex-shrink: 0;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .page-header h1 { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 900; background: linear-gradient(135deg, var(--gold), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .page-header p { color: var(--muted); font-size: 0.8rem; margin-top: 0.15rem; }
+
+  /* ── STATS ── */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; padding: 0.85rem 1rem; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .stat { text-align: center; padding: 0.6rem 0.3rem; background: var(--card); border-radius: 10px; border: 1px solid var(--border); }
+  .stat-num { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: var(--gold); line-height: 1; }
+  .stat-label { font-size: 0.6rem; color: var(--muted); margin-top: 0.2rem; }
+
+  /* ── LIST PAGE ── */
+  .search-bar { padding: 0.75rem 1rem; position: sticky; top: 0; background: var(--bg); z-index: 5; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .search-bar input { width: 100%; background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 0.6rem 0.85rem 0.6rem 2.3rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; outline: none; }
+  .search-wrap { position: relative; }
+  .search-wrap::before { content: '🔍'; position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); font-size: 0.8rem; }
+
+  .filter-row { display: flex; gap: 0.5rem; padding: 0.6rem 1rem; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-chip { white-space: nowrap; padding: 0.35rem 0.85rem; border-radius: 20px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 0.78rem; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+  .filter-chip.active { background: var(--gold); border-color: var(--gold); color: var(--bg); font-weight: 600; }
+
+  .voyages-list { padding: 0.75rem 1rem 5rem; display: flex; flex-direction: column; gap: 0.85rem; }
+
+  /* ── VOYAGE CARD ── */
+  .voyage-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: transform 0.15s; position: relative; }
+  .voyage-card:active { transform: scale(0.98); }
+  .card-stripe { height: 3px; }
+  .card-stripe.hotel { background: var(--hotel); }
+  .card-stripe.camping { background: var(--camping); }
+  .card-stripe.autre { background: var(--autre); }
+  .card-body { padding: 1rem; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.6rem; }
+  .card-title { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: var(--text); flex: 1; margin-right: 0.5rem; }
+  .card-badge { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.18rem 0.5rem; border-radius: 20px; white-space: nowrap; }
+  .card-badge.hotel { background: rgba(96,165,250,0.15); color: var(--hotel); }
+  .card-badge.camping { background: rgba(74,222,128,0.15); color: var(--camping); }
+  .card-badge.autre { background: rgba(192,132,252,0.15); color: var(--autre); }
+
+  .card-meta { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.6rem; }
+  .card-meta-row { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--muted); flex-wrap: wrap; }
+  .card-meta-row strong { color: var(--text); }
+  .jours-badge { background: rgba(212,168,83,0.15); border: 1px solid rgba(212,168,83,0.3); color: var(--gold); padding: 0.1rem 0.45rem; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+
+  .maps-btn { display: inline-flex; align-items: center; gap: 0.25rem; background: rgba(57,213,193,0.1); border: 1px solid rgba(57,213,193,0.3); color: var(--teal); padding: 0.12rem 0.45rem; border-radius: 7px; font-size: 0.72rem; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; white-space: nowrap; }
+  .maps-btn:active { background: rgba(57,213,193,0.25); }
+  .maps-btn svg { width: 10px; height: 10px; fill: currentColor; flex-shrink: 0; }
+
+  .lieux-section { margin-top: 0.5rem; }
+  .lieux-title { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem; }
+  .lieux-list { display: flex; flex-direction: column; gap: 0.3rem; }
+  .lieu-row { display: flex; align-items: center; justify-content: space-between; background: rgba(212,168,83,0.07); border: 1px solid rgba(212,168,83,0.15); border-radius: 7px; padding: 0.3rem 0.55rem; }
+  .lieu-name { font-size: 0.8rem; color: var(--gold-light); }
+  .card-notes { font-size: 0.78rem; color: var(--muted); margin-top: 0.55rem; font-style: italic; line-height: 1.45; }
+
+  .card-actions { display: flex; gap: 0.5rem; padding: 0.65rem 1rem; border-top: 1px solid var(--border); background: rgba(0,0,0,0.15); }
+  .btn-edit, .btn-del { flex: 1; padding: 0.5rem; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all 0.2s; }
+  .btn-edit:active { border-color: var(--gold); color: var(--gold); }
+  .btn-del:active { border-color: var(--rose); color: var(--rose); }
+
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; color: var(--muted); padding: 2rem; text-align: center; }
+  .empty-state .emoji { font-size: 3rem; }
+  .empty-state h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--text); }
+  .empty-state p { font-size: 0.85rem; }
+
+  /* ── ADD / EDIT PAGE ── */
+  .form-scroll { flex: 1; overflow-y: auto; padding: 1rem 1rem 6rem; -webkit-overflow-scrolling: touch; }
+  .form-group { margin-bottom: 0.95rem; }
+  .form-label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.35rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+  .form-input { width: 100%; background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 0.75rem 0.9rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  .form-input:focus { border-color: var(--gold); }
+  textarea.form-input { resize: none; height: 90px; }
+
+  .type-btns { display: flex; gap: 0.5rem; }
+  .type-btn { flex: 1; padding: 0.65rem 0.4rem; border-radius: 10px; border: 2px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; transition: all 0.2s; text-align: center; }
+  .type-btn.active-hotel { border-color: var(--hotel); color: var(--hotel); background: rgba(96,165,250,0.1); }
+  .type-btn.active-camping { border-color: var(--camping); color: var(--camping); background: rgba(74,222,128,0.1); }
+  .type-btn.active-autre { border-color: var(--autre); color: var(--autre); background: rgba(192,132,252,0.1); }
+
+  .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+  .lieu-input-row { display: flex; gap: 0.5rem; }
+  .lieu-input-row .form-input { flex: 1; }
+  .btn-add-lieu { background: rgba(212,168,83,0.2); border: 1px solid var(--gold); color: var(--gold); padding: 0 1rem; border-radius: 10px; cursor: pointer; font-size: 1.2rem; transition: all 0.2s; flex-shrink: 0; }
+  .btn-add-lieu:active { background: var(--gold); color: var(--bg); }
+
+  .form-lieux-list { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .form-lieu-tag { background: rgba(212,168,83,0.15); border: 1px solid rgba(212,168,83,0.3); color: var(--gold-light); padding: 0.3rem 0.65rem; border-radius: 20px; font-size: 0.8rem; display: flex; align-items: center; gap: 0.3rem; cursor: pointer; }
+  .form-lieu-tag .del { opacity: 0.6; font-size: 0.7rem; }
+
+  .btn-save { width: 100%; padding: 1rem; background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: var(--bg); border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 0.5rem; }
+  .btn-save:active { opacity: 0.88; }
+  .btn-cancel-form { width: 100%; padding: 0.75rem; background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; cursor: pointer; margin-top: 0.5rem; }
+
+  /* FAB */
+  .fab { position: fixed; bottom: calc(4.5rem + var(--safe-bottom)); right: 1.25rem; width: 54px; height: 54px; background: linear-gradient(135deg, var(--gold), var(--gold-light)); border: none; border-radius: 50%; font-size: 1.5rem; cursor: pointer; box-shadow: 0 6px 20px rgba(212,168,83,0.4); z-index: 50; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+  .fab:active { transform: scale(0.92); }
+
+  /* MAP PANEL */
+  #map-panel {
+    position: fixed; bottom: calc(4.5rem + var(--safe-bottom) + 0.75rem); left: 0.75rem; right: 0.75rem;
+    height: 260px; background: var(--card); border: 1px solid var(--teal);
+    border-radius: 16px; box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+    z-index: 9999; display: none; flex-direction: column; overflow: hidden;
+    animation: panelIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes panelIn { from { opacity:0; transform:translateY(30px) scale(0.95); } to { opacity:1; transform:translateY(0) scale(1); } }
+  #map-panel.visible { display: flex; }
+  #map-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.85rem; background: rgba(57,213,193,0.08); border-bottom: 1px solid rgba(57,213,193,0.2); flex-shrink: 0; }
+  #map-panel-title { font-size: 0.82rem; font-weight: 600; color: var(--teal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65%; }
+  .map-actions { display: flex; gap: 0.4rem; }
+  .map-open-btn { font-size: 0.73rem; padding: 0.25rem 0.6rem; border-radius: 6px; background: var(--teal); color: var(--bg); border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600; }
+  .map-close-btn { background: rgba(224,92,122,0.15); border: 1px solid rgba(224,92,122,0.3); color: var(--rose); width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; }
+  #map-iframe-wrap { flex: 1; position: relative; }
+  #map-iframe-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
+  #map-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; background: var(--card); color: var(--muted); font-size: 0.82rem; }
+  .spinner { width: 26px; height: 26px; border: 3px solid rgba(57,213,193,0.2); border-top-color: var(--teal); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: calc(5.5rem + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(60px); background: var(--surface); border: 1px solid var(--gold); color: var(--text); padding: 0.75rem 1.1rem; border-radius: 10px; font-size: 0.88rem; z-index: 99999; opacity: 0; transition: all 0.3s; white-space: nowrap; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* INSTALL BANNER */
+  #install-banner { display: none; position: fixed; top: calc(var(--safe-top) + 0.5rem); left: 0.75rem; right: 0.75rem; background: var(--surface); border: 1px solid var(--gold); border-radius: 12px; padding: 0.85rem 1rem; z-index: 200; box-shadow: 0 8px 24px rgba(0,0,0,0.5); align-items: center; gap: 0.75rem; }
+  #install-banner.show { display: flex; }
+  .install-text { flex: 1; font-size: 0.82rem; color: var(--text); line-height: 1.4; }
+  .install-text strong { color: var(--gold); display: block; margin-bottom: 0.1rem; }
+  .btn-install { background: var(--gold); color: var(--bg); border: none; padding: 0.5rem 0.9rem; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.82rem; cursor: pointer; flex-shrink: 0; }
+  .btn-dismiss { background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner">
+  <div class="install-text">
+    <strong>📲 Installer l'app</strong>
+    Ajoute Mes Voyages à ton écran d'accueil pour l'utiliser comme une vraie app !
+  </div>
+  <button class="btn-install" id="btn-install">Installer</button>
+  <button class="btn-dismiss" onclick="dismissInstall()">✕</button>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- PAGE: LISTE -->
+  <div class="page active" id="page-list">
+    <div class="page-header">
+      <h1>✈ Mes Voyages</h1>
+      <p>Gestionnaire personnel de voyages</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Voyages</div></div>
+      <div class="stat"><div class="stat-num" id="stat-jours">0</div><div class="stat-label">Jours</div></div>
+      <div class="stat"><div class="stat-num" id="stat-lieux">0</div><div class="stat-label">Lieux</div></div>
+      <div class="stat"><div class="stat-num" id="stat-dests">0</div><div class="stat-label">Dest.</div></div>
+    </div>
+    <div class="search-bar">
+      <div class="search-wrap">
+        <input class="form-input" type="text" id="search-input" placeholder="Rechercher…" oninput="renderList()">
+      </div>
+    </div>
+    <div class="filter-row">
+      <button class="filter-chip active" onclick="setFilter('tous',this)">Tous</button>
+      <button class="filter-chip" onclick="setFilter('hotel',this)">🏨 Hôtel</button>
+      <button class="filter-chip" onclick="setFilter('camping',this)">⛺ Camping</button>
+      <button class="filter-chip" onclick="setFilter('autre',this)">🏠 Autre</button>
+    </div>
+    <div class="voyages-list" id="voyages-list"></div>
+  </div>
+
+  <!-- PAGE: FORMULAIRE -->
+  <div class="page" id="page-form">
+    <div class="page-header">
+      <h1 id="form-page-title">➕ Nouveau voyage</h1>
+      <p>Remplis les informations de ton voyage</p>
+    </div>
+    <div class="form-scroll">
+      <input type="hidden" id="edit-id">
+
+      <div class="form-group">
+        <label class="form-label">Nom du voyage</label>
+        <input type="text" class="form-input" id="f-nom" placeholder="Ex: Road trip Gaspésie">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Destination / Région</label>
+        <input type="text" class="form-input" id="f-destination" placeholder="Ex: Gaspésie, Québec">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type d'hébergement</label>
+        <div class="type-btns">
+          <button class="type-btn" data-type="hotel" onclick="selectType('hotel')">🏨 Hôtel</button>
+          <button class="type-btn" data-type="camping" onclick="selectType('camping')">⛺ Camping</button>
+          <button class="type-btn" data-type="autre" onclick="selectType('autre')">🏠 Autre</button>
+        </div>
+        <input type="hidden" id="f-type">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nom de l'hébergement</label>
+        <input type="text" class="form-input" id="f-hebergement" placeholder="Ex: Camping du Lac, Hôtel Manoir…">
+      </div>
+      <div class="date-row">
+        <div class="form-group"><label class="form-label">Date départ</label><input type="date" class="form-input" id="f-debut"></div>
+        <div class="form-group"><label class="form-label">Date retour</label><input type="date" class="form-input" id="f-fin"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lieux à visiter</label>
+        <div class="lieu-input-row">
+          <input type="text" class="form-input" id="f-lieu-input" placeholder="Ajouter un lieu…" onkeydown="if(event.key==='Enter'){addLieu();event.preventDefault();}">
+          <button class="btn-add-lieu" onclick="addLieu()">+</button>
+        </div>
+        <div class="form-lieux-list" id="form-lieux-list"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-input" id="f-notes" placeholder="Budget, réservations, choses à apporter…"></textarea>
+      </div>
+
+      <button class="btn-save" onclick="saveVoyage()">💾 Enregistrer</button>
+      <button class="btn-cancel-form" onclick="goToList()">✕ Annuler</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav id="bottom-nav">
+  <button class="nav-btn active" id="nav-list" onclick="goToList()">
+    <span class="nav-icon">🌍</span>Voyages
+  </button>
+  <button class="nav-btn" id="nav-add" onclick="goToAdd()">
+    <span class="nav-icon">➕</span>Nouveau
+  </button>
+</nav>
+
+<!-- MAP PANEL -->
+<div id="map-panel">
+  <div id="map-panel-header">
+    <div id="map-panel-title">📍 —</div>
+    <div class="map-actions">
+      <button class="map-open-btn" onclick="openInMaps()">↗ Ouvrir</button>
+      <button class="map-close-btn" onclick="closeMap()">✕</button>
+    </div>
+  </div>
+  <div id="map-iframe-wrap">
+    <div id="map-loading"><div class="spinner"></div>Chargement…</div>
+    <iframe id="map-iframe" title="Carte" allowfullscreen loading="lazy"></iframe>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── DATA ────────────────────────────────────────────────────
+  let voyages = JSON.parse(localStorage.getItem('mesVoyages') || '[]');
+  let formLieux = [];
+  let currentFilter = 'tous';
+  let currentMapUrl = '';
+
+  const mapsIcon = `<svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>`;
+
+  // ── NAVIGATION ──────────────────────────────────────────────
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    if (id === 'page-list') document.getElementById('nav-list').classList.add('active');
+    if (id === 'page-form') document.getElementById('nav-add').classList.add('active');
+    closeMap();
+  }
+
+  function goToList() { showPage('page-list'); renderList(); }
+
+  function goToAdd() {
+    resetForm();
+    document.getElementById('form-page-title').textContent = '➕ Nouveau voyage';
+    showPage('page-form');
+  }
+
+  // ── MAP ─────────────────────────────────────────────────────
+  function showMap(query, label) {
+    const encoded = encodeURIComponent(query);
+    currentMapUrl = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+    const embedUrl = `https://maps.google.com/maps?q=${encoded}&output=embed&z=14`;
+    document.getElementById('map-panel-title').textContent = '📍 ' + label;
+    document.getElementById('map-loading').style.display = 'flex';
+    const iframe = document.getElementById('map-iframe');
+    iframe.style.opacity = '0';
+    iframe.src = embedUrl;
+    iframe.onload = () => {
+      document.getElementById('map-loading').style.display = 'none';
+      iframe.style.opacity = '1';
+      iframe.style.transition = 'opacity 0.3s';
+    };
+    document.getElementById('map-panel').classList.add('visible');
+  }
+
+  function closeMap() {
+    const p = document.getElementById('map-panel');
+    p.classList.remove('visible');
+    setTimeout(() => { document.getElementById('map-iframe').src = ''; }, 250);
+  }
+
+  function openInMaps() {
+    if (currentMapUrl) window.open(currentMapUrl, '_blank');
+  }
+
+  // ── FORM ────────────────────────────────────────────────────
+  function selectType(type) {
+    document.getElementById('f-type').value = type;
+    document.querySelectorAll('.type-btn').forEach(b => {
+      b.className = 'type-btn';
+      if (b.dataset.type === type) b.classList.add('active-' + type);
+    });
+  }
+
+  function addLieu() {
+    const inp = document.getElementById('f-lieu-input');
+    const val = inp.value.trim();
+    if (!val) return;
+    formLieux.push(val);
+    inp.value = '';
+    renderFormLieux();
+  }
+
+  function removeFormLieu(i) { formLieux.splice(i, 1); renderFormLieux(); }
+
+  function renderFormLieux() {
+    document.getElementById('form-lieux-list').innerHTML = formLieux.map((l, i) =>
+      `<div class="form-lieu-tag" onclick="removeFormLieu(${i})">📍 ${l} <span class="del">✕</span></div>`
+    ).join('');
+  }
+
+  function resetForm() {
+    ['edit-id','f-nom','f-destination','f-type','f-hebergement','f-debut','f-fin','f-notes']
+      .forEach(id => document.getElementById(id).value = '');
+    document.querySelectorAll('.type-btn').forEach(b => b.className = 'type-btn');
+    formLieux = []; renderFormLieux();
+  }
+
+  function saveVoyage() {
+    const nom = document.getElementById('f-nom').value.trim();
+    const dest = document.getElementById('f-destination').value.trim();
+    if (!nom || !dest) { showToast('⚠️ Nom et destination requis'); return; }
+    const debut = document.getElementById('f-debut').value;
+    const fin = document.getElementById('f-fin').value;
+    const jours = debut && fin ? Math.max(0, Math.ceil((new Date(fin) - new Date(debut)) / 86400000)) : 0;
+    const editId = document.getElementById('edit-id').value;
+    const voyage = {
+      id: editId || Date.now().toString(),
+      nom, dest,
+      type: document.getElementById('f-type').value,
+      heb: document.getElementById('f-hebergement').value.trim(),
+      debut, fin, jours,
+      lieux: [...formLieux],
+      notes: document.getElementById('f-notes').value.trim()
+    };
+    if (editId) {
+      const idx = voyages.findIndex(v => v.id === editId);
+      if (idx !== -1) voyages[idx] = voyage;
+      showToast('✅ Voyage modifié !');
+    } else {
+      voyages.unshift(voyage);
+      showToast('🎉 Voyage ajouté !');
+    }
+    localStorage.setItem('mesVoyages', JSON.stringify(voyages));
+    goToList();
+  }
+
+  function editVoyage(id) {
+    const v = voyages.find(x => x.id === id);
+    if (!v) return;
+    resetForm();
+    document.getElementById('edit-id').value = v.id;
+    document.getElementById('f-nom').value = v.nom;
+    document.getElementById('f-destination').value = v.dest;
+    document.getElementById('f-hebergement').value = v.heb || '';
+    document.getElementById('f-debut').value = v.debut || '';
+    document.getElementById('f-fin').value = v.fin || '';
+    document.getElementById('f-notes').value = v.notes || '';
+    formLieux = [...(v.lieux || [])]; renderFormLieux();
+    if (v.type) selectType(v.type);
+    document.getElementById('form-page-title').textContent = '✏️ Modifier le voyage';
+    showPage('page-form');
+  }
+
+  function deleteVoyage(id) {
+    if (!confirm('Supprimer ce voyage ?')) return;
+    voyages = voyages.filter(v => v.id !== id);
+    localStorage.setItem('mesVoyages', JSON.stringify(voyages));
+    showToast('🗑 Voyage supprimé');
+    renderList();
+  }
+
+  // ── RENDER ──────────────────────────────────────────────────
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderList();
+  }
+
+  function renderList() {
+    const search = (document.getElementById('search-input').value || '').toLowerCase();
+    let list = voyages;
+    if (currentFilter !== 'tous') list = list.filter(v => v.type === currentFilter);
+    if (search) list = list.filter(v =>
+      v.nom.toLowerCase().includes(search) ||
+      v.dest.toLowerCase().includes(search) ||
+      (v.heb && v.heb.toLowerCase().includes(search)) ||
+      (v.lieux && v.lieux.some(l => l.toLowerCase().includes(search)))
+    );
+
+    // stats
+    document.getElementById('stat-total').textContent = voyages.length;
+    document.getElementById('stat-jours').textContent = voyages.reduce((s, v) => s + (v.jours || 0), 0);
+    document.getElementById('stat-lieux').textContent = voyages.reduce((s, v) => s + (v.lieux ? v.lieux.length : 0), 0);
+    document.getElementById('stat-dests').textContent = new Set(voyages.map(v => v.dest.split(',')[0].trim().toLowerCase())).size;
+
+    const container = document.getElementById('voyages-list');
+    if (!list.length) {
+      container.innerHTML = `<div class="empty-state"><div class="emoji">🌍</div><h3>Aucun voyage</h3><p>Appuie sur ➕ pour ajouter ton premier voyage !</p></div>`;
+      return;
+    }
+
+    container.innerHTML = list.map(v => {
+      const type = v.type || 'autre';
+      const typeLabel = type === 'hotel' ? '🏨 Hôtel' : type === 'camping' ? '⛺ Camping' : '🏠 Autre';
+      const dateStr = v.debut ? `${fd(v.debut)}${v.fin ? ' → ' + fd(v.fin) : ''}` : 'Dates non définies';
+      const dq = esc(v.dest); const dl = esc(v.dest);
+      const hq = esc((v.heb || '') + ' ' + v.dest); const hl = esc(v.heb || '');
+
+      const lieuxHtml = v.lieux && v.lieux.length ? `
+        <div class="lieux-section">
+          <div class="lieux-title">📌 Lieux à visiter</div>
+          <div class="lieux-list">
+            ${v.lieux.map(l => {
+              const lq = esc(l + ' ' + v.dest);
+              const ll = esc(l);
+              return `<div class="lieu-row">
+                <span class="lieu-name">📍 ${l}</span>
+                <button class="maps-btn" onclick="showMap('${lq}','${ll}')">${mapsIcon} Maps</button>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>` : '';
+
+      const notesHtml = v.notes ? `<div class="card-notes">"${v.notes}"</div>` : '';
+
+      return `<div class="voyage-card">
+        <div class="card-stripe ${type}"></div>
+        <div class="card-body">
+          <div class="card-top">
+            <div class="card-title">${v.nom}</div>
+            <span class="card-badge ${type}">${typeLabel}</span>
+          </div>
+          <div class="card-meta">
+            <div class="card-meta-row"><strong>📍 ${v.dest}</strong>
+              <button class="maps-btn" onclick="showMap('${dq}','${dl}')">${mapsIcon} Maps</button>
+            </div>
+            ${v.heb ? `<div class="card-meta-row">🏷 ${v.heb}
+              <button class="maps-btn" onclick="showMap('${hq}','${hl}')">${mapsIcon} Maps</button>
+            </div>` : ''}
+            <div class="card-meta-row">📅 ${dateStr}
+              ${v.jours ? `<span class="jours-badge">${v.jours} jour${v.jours > 1 ? 's' : ''}</span>` : ''}
+            </div>
+          </div>
+          ${lieuxHtml}
+          ${notesHtml}
+        </div>
+        <div class="card-actions">
+          <button class="btn-edit" onclick="editVoyage('${v.id}')">✏️ Modifier</button>
+          <button class="btn-del" onclick="deleteVoyage('${v.id}')">🗑 Supprimer</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function esc(s) { return (s || '').replace(/'/g, "\\'"); }
+  function fd(d) {
+    if (!d) return '';
+    const [y,m,j] = d.split('-');
+    return `${j} ${['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'][parseInt(m)-1]} ${y}`;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  // ── PWA INSTALL ─────────────────────────────────────────────
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (!localStorage.getItem('installDismissed')) {
+      document.getElementById('install-banner').classList.add('show');
+    }
+  });
+
+  document.getElementById('btn-install').addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    document.getElementById('install-banner').classList.remove('show');
+    if (outcome === 'accepted') showToast('🎉 App installée avec succès !');
+  });
+
+  function dismissInstall() {
+    localStorage.setItem('installDismissed', '1');
+    document.getElementById('install-banner').classList.remove('show');
+  }
+
+  // ── SERVICE WORKER ──────────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
+  // ── INIT ────────────────────────────────────────────────────
+  renderList();
+</script>
+</body>
+</html>
