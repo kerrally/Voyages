@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#d4a853">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mes Voyages">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Gestionnaire personnel de voyages">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Mes Voyages</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --card: #1c2330;
+    --border: #30363d;
+    --gold: #d4a853;
+    --gold-light: #f0c674;
+    --teal: #39d5c1;
+    --rose: #e05c7a;
+    --green: #4ade80;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --camping: #4ade80;
+    --hotel: #60a5fa;
+    --autre: #c084fc;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; display: flex; flex-direction: column; }
+
+  #bottom-nav { display: flex; flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); z-index: 100; }
+  .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.6rem 0.5rem; gap: 0.2rem; background: none; border: none; cursor: pointer; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.65rem; font-weight: 500; transition: color 0.2s; }
+  .nav-btn .nav-icon { font-size: 1.4rem; line-height: 1; }
+  .nav-btn.active { color: var(--gold); }
+  .nav-btn.active .nav-icon { filter: drop-shadow(0 0 6px rgba(212,168,83,0.5)); }
+
+  #app { flex: 1; overflow: hidden; position: relative; }
+  .page { position: absolute; inset: 0; overflow-y: auto; display: none; flex-direction: column; -webkit-overflow-scrolling: touch; }
+  .page.active { display: flex; }
+
+  .page-header { background: linear-gradient(135deg, #0d1117 0%, #1a1f2e 60%, #0d1117 100%); border-bottom: 1px solid var(--border); padding: calc(var(--safe-top) + 1.2rem) 1.25rem 1rem; flex-shrink: 0; position: sticky; top: 0; z-index: 10; }
+  .page-header h1 { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 900; background: linear-gradient(135deg, var(--gold), var(--gold-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .page-header p { color: var(--muted); font-size: 0.8rem; margin-top: 0.15rem; }
+
+  #budget-banner { background: linear-gradient(135deg, rgba(212,168,83,0.12), rgba(240,198,116,0.08)); border-bottom: 1px solid rgba(212,168,83,0.25); padding: 0.75rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .budget-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .budget-amount { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: var(--gold-light); }
+  .budget-detail { font-size: 0.7rem; color: var(--muted); margin-top: 0.05rem; }
+  .budget-icon { font-size: 1.8rem; opacity: 0.6; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; padding: 0.85rem 1rem; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .stat { text-align: center; padding: 0.6rem 0.3rem; background: var(--card); border-radius: 10px; border: 1px solid var(--border); }
+  .stat-num { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: var(--gold); line-height: 1; }
+  .stat-label { font-size: 0.6rem; color: var(--muted); margin-top: 0.2rem; }
+
+  .search-bar { padding: 0.75rem 1rem; position: sticky; top: 0; background: var(--bg); z-index: 5; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .search-bar input { width: 100%; background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 0.6rem 0.85rem 0.6rem 2.3rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; outline: none; }
+  .search-wrap { position: relative; }
+  .search-wrap::before { content: '🔍'; position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); font-size: 0.8rem; }
+
+  .filter-row { display: flex; gap: 0.5rem; padding: 0.6rem 1rem; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-chip { white-space: nowrap; padding: 0.35rem 0.85rem; border-radius: 20px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 0.78rem; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+  .filter-chip.active { background: var(--gold); border-color: var(--gold); color: var(--bg); font-weight: 600; }
+
+  .voyages-list { padding: 0.75rem 1rem 5rem; display: flex; flex-direction: column; gap: 0.85rem; }
+
+  .voyage-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: transform 0.15s; }
+  .voyage-card:active { transform: scale(0.98); }
+  .card-stripe { height: 3px; }
+  .card-stripe.hotel { background: var(--hotel); }
+  .card-stripe.camping { background: var(--camping); }
+  .card-stripe.autre { background: var(--autre); }
+  .card-body { padding: 1rem; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.6rem; }
+  .card-title { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: var(--text); flex: 1; margin-right: 0.5rem; }
+  .card-badge { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.18rem 0.5rem; border-radius: 20px; white-space: nowrap; }
+  .card-badge.hotel { background: rgba(96,165,250,0.15); color: var(--hotel); }
+  .card-badge.camping { background: rgba(74,222,128,0.15); color: var(--camping); }
+  .card-badge.autre { background: rgba(192,132,252,0.15); color: var(--autre); }
+
+  .card-meta { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.6rem; }
+  .card-meta-row { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--muted); flex-wrap: wrap; }
+  .card-meta-row strong { color: var(--text); }
+  .jours-badge { background: rgba(212,168,83,0.15); border: 1px solid rgba(212,168,83,0.3); color: var(--gold); padding: 0.1rem 0.45rem; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+  .prix-badge { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.3); color: var(--green); padding: 0.1rem 0.55rem; border-radius: 10px; font-size: 0.75rem; font-weight: 700; }
+
+  .maps-btn { display: inline-flex; align-items: center; gap: 0.25rem; background: rgba(57,213,193,0.1); border: 1px solid rgba(57,213,193,0.3); color: var(--teal); padding: 0.12rem 0.45rem; border-radius: 7px; font-size: 0.72rem; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; white-space: nowrap; }
+  .maps-btn:active { background: rgba(57,213,193,0.25); }
+  .maps-btn svg { width: 10px; height: 10px; fill: currentColor; flex-shrink: 0; }
+
+  .lieux-section { margin-top: 0.5rem; }
+  .lieux-title { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem; }
+  .lieux-list { display: flex; flex-direction: column; gap: 0.3rem; }
+  .lieu-row { display: flex; align-items: center; justify-content: space-between; background: rgba(212,168,83,0.07); border: 1px solid rgba(212,168,83,0.15); border-radius: 7px; padding: 0.3rem 0.55rem; }
+  .lieu-name { font-size: 0.8rem; color: var(--gold-light); }
+  .card-notes { font-size: 0.78rem; color: var(--muted); margin-top: 0.55rem; font-style: italic; line-height: 1.45; }
+
+  .card-actions { display: flex; gap: 0.5rem; padding: 0.65rem 1rem; border-top: 1px solid var(--border); background: rgba(0,0,0,0.15); }
+  .btn-edit, .btn-del { flex: 1; padding: 0.5rem; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all 0.2s; }
+  .btn-edit:active { border-color: var(--gold); color: var(--gold); }
+  .btn-del:active { border-color: var(--rose); color: var(--rose); }
+
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; color: var(--muted); padding: 2rem; text-align: center; }
+  .empty-state .emoji { font-size: 3rem; }
+  .empty-state h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--text); }
+  .empty-state p { font-size: 0.85rem; }
+
+  .form-scroll { flex: 1; overflow-y: auto; padding: 1rem 1rem 6rem; -webkit-overflow-scrolling: touch; }
+  .form-group { margin-bottom: 0.95rem; }
+  .form-label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.35rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+  .form-input { width: 100%; background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 0.75rem 0.9rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  .form-input:focus { border-color: var(--gold); }
+  textarea.form-input { resize: none; height: 90px; }
+
+  .type-btns { display: flex; gap: 0.5rem; }
+  .type-btn { flex: 1; padding: 0.65rem 0.4rem; border-radius: 10px; border: 2px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; transition: all 0.2s; text-align: center; }
+  .type-btn.active-hotel { border-color: var(--hotel); color: var(--hotel); background: rgba(96,165,250,0.1); }
+  .type-btn.active-camping { border-color: var(--camping); color: var(--camping); background: rgba(74,222,128,0.1); }
+  .type-btn.active-autre { border-color: var(--autre); color: var(--autre); background: rgba(192,132,252,0.1); }
+
+  .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .lieu-input-row { display: flex; gap: 0.5rem; }
+  .lieu-input-row .form-input { flex: 1; }
+  .btn-add-lieu { background: rgba(212,168,83,0.2); border: 1px solid var(--gold); color: var(--gold); padding: 0 1rem; border-radius: 10px; cursor: pointer; font-size: 1.2rem; transition: all 0.2s; flex-shrink: 0; }
+  .btn-add-lieu:active { background: var(--gold); color: var(--bg); }
+
+  .form-lieux-list { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .form-lieu-tag { background: rgba(212,168,83,0.15); border: 1px solid rgba(212,168,83,0.3); color: var(--gold-light); padding: 0.3rem 0.65rem; border-radius: 20px; font-size: 0.8rem; display: flex; align-items: center; gap: 0.3rem; cursor: pointer; }
+  .form-lieu-tag .del { opacity: 0.6; font-size: 0.7rem; }
+
+  .btn-save { width: 100%; padding: 1rem; background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: var(--bg); border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 0.5rem; }
+  .btn-save:active { opacity: 0.88; }
+  .btn-cancel-form { width: 100%; padding: 0.75rem; background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; cursor: pointer; margin-top: 0.5rem; }
+
+  .prix-input-wrap { position: relative; }
+  .prix-input-wrap .form-input { padding-right: 3.5rem; }
+  .prix-currency { position: absolute; right: 0.9rem; top: 50%; transform: translateY(-50%); color: var(--gold); font-weight: 700; font-size: 0.9rem; pointer-events: none; }
+
+  .fab { position: fixed; bottom: calc(4.5rem + var(--safe-bottom)); right: 1.25rem; width: 54px; height: 54px; background: linear-gradient(135deg, var(--gold), var(--gold-light)); border: none; border-radius: 50%; font-size: 1.5rem; cursor: pointer; box-shadow: 0 6px 20px rgba(212,168,83,0.4); z-index: 50; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+  .fab:active { transform: scale(0.92); }
+
+  .fichiers-scroll { flex: 1; overflow-y: auto; padding: 1rem 1rem 5rem; }
+  .section-title { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.6rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border); }
+
+  .action-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem; margin-bottom: 0.85rem; }
+  .action-card-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; }
+  .action-card-desc { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.85rem; line-height: 1.5; }
+  .btn-action { width: 100%; padding: 0.75rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 0.5rem; display: block; }
+  .btn-action:last-child { margin-bottom: 0; }
+  .btn-export-csv { background: rgba(57,213,193,0.12); border: 1px solid var(--teal); color: var(--teal); }
+  .btn-import-csv { background: rgba(96,165,250,0.12); border: 1px solid var(--hotel); color: var(--hotel); }
+  .btn-save-file { background: rgba(212,168,83,0.15); border: 1px solid var(--gold); color: var(--gold); }
+  .btn-load-file { background: rgba(192,132,252,0.12); border: 1px solid var(--autre); color: var(--autre); }
+  .btn-danger { background: rgba(224,92,122,0.12); border: 1px solid var(--rose); color: var(--rose); }
+
+  .fichiers-list { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
+  .fichier-item { background: var(--card); border: 1px solid var(--border); border-radius: 11px; padding: 0.8rem 1rem; display: flex; align-items: center; gap: 0.75rem; }
+  .fichier-icon { font-size: 1.5rem; flex-shrink: 0; }
+  .fichier-info { flex: 1; min-width: 0; }
+  .fichier-name { font-size: 0.9rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fichier-meta { font-size: 0.7rem; color: var(--muted); margin-top: 0.15rem; }
+  .fichier-btns { display: flex; gap: 0.4rem; flex-shrink: 0; }
+  .fich-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 0.3rem 0.6rem; border-radius: 7px; font-size: 0.72rem; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .fich-btn.load { border-color: var(--gold); color: var(--gold); }
+  .fich-btn.del { border-color: rgba(224,92,122,0.4); color: var(--rose); }
+
+  #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 1000; align-items: center; justify-content: center; padding: 1.5rem; }
+  #modal-overlay.show { display: flex; }
+  #modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; width: 100%; max-width: 360px; }
+  #modal-box h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; margin-bottom: 0.5rem; }
+  #modal-box p { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; line-height: 1.5; }
+  #modal-input { width: 100%; background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 0.75rem 0.9rem; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; outline: none; margin-bottom: 0.85rem; }
+  #modal-input:focus { border-color: var(--gold); }
+  .modal-btns { display: flex; gap: 0.5rem; }
+  .modal-btn-ok { flex: 1; padding: 0.75rem; background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: var(--bg); border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
+  .modal-btn-cancel { flex: 1; padding: 0.75rem; background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; cursor: pointer; }
+
+  #map-panel { position: fixed; bottom: calc(4.5rem + var(--safe-bottom) + 0.75rem); left: 0.75rem; right: 0.75rem; height: 260px; background: var(--card); border: 1px solid var(--teal); border-radius: 16px; box-shadow: 0 16px 48px rgba(0,0,0,0.7); z-index: 9999; display: none; flex-direction: column; overflow: hidden; animation: panelIn 0.28s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes panelIn { from { opacity:0; transform:translateY(30px) scale(0.95); } to { opacity:1; transform:translateY(0) scale(1); } }
+  #map-panel.visible { display: flex; }
+  #map-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.85rem; background: rgba(57,213,193,0.08); border-bottom: 1px solid rgba(57,213,193,0.2); flex-shrink: 0; }
+  #map-panel-title { font-size: 0.82rem; font-weight: 600; color: var(--teal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65%; }
+  .map-actions { display: flex; gap: 0.4rem; }
+  .map-open-btn { font-size: 0.73rem; padding: 0.25rem 0.6rem; border-radius: 6px; background: var(--teal); color: var(--bg); border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600; }
+  .map-close-btn { background: rgba(224,92,122,0.15); border: 1px solid rgba(224,92,122,0.3); color: var(--rose); width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; }
+  #map-iframe-wrap { flex: 1; position: relative; }
+  #map-iframe-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
+  #map-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; background: var(--card); color: var(--muted); font-size: 0.82rem; }
+  .spinner { width: 26px; height: 26px; border: 3px solid rgba(57,213,193,0.2); border-top-color: var(--teal); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .toast { position: fixed; bottom: calc(5.5rem + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(60px); background: var(--surface); border: 1px solid var(--gold); color: var(--text); padding: 0.75rem 1.1rem; border-radius: 10px; font-size: 0.88rem; z-index: 99999; opacity: 0; transition: all 0.3s; white-space: nowrap; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  #install-banner { display: none; position: fixed; top: calc(var(--safe-top) + 0.5rem); left: 0.75rem; right: 0.75rem; background: var(--surface); border: 1px solid var(--gold); border-radius: 12px; padding: 0.85rem 1rem; z-index: 200; box-shadow: 0 8px 24px rgba(0,0,0,0.5); align-items: center; gap: 0.75rem; }
+  #install-banner.show { display: flex; }
+  .install-text { flex: 1; font-size: 0.82rem; color: var(--text); line-height: 1.4; }
+  .install-text strong { color: var(--gold); display: block; margin-bottom: 0.1rem; }
+  .btn-install { background: var(--gold); color: var(--bg); border: none; padding: 0.5rem 0.9rem; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.82rem; cursor: pointer; flex-shrink: 0; }
+  .btn-dismiss { background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; flex-shrink: 0; }
+  input[type="file"] { display: none; }
+</style>
+</head>
+<body>
+
+<div id="install-banner">
+  <div class="install-text">
+    <strong>📲 Installer l'app</strong>
+    Ajoute Mes Voyages a ton ecran d'accueil pour l'utiliser comme une vraie app !
+  </div>
+  <button class="btn-install" id="btn-install">Installer</button>
+  <button class="btn-dismiss" onclick="dismissInstall()">X</button>
+</div>
+
+<div id="app">
+
+  <!-- PAGE: LISTE -->
+  <div class="page active" id="page-list">
+    <div class="page-header">
+      <h1>Mes Voyages</h1>
+      <p>Gestionnaire personnel de voyages</p>
+    </div>
+    <div id="budget-banner">
+      <div>
+        <div class="budget-label">Total des reservations</div>
+        <div class="budget-amount" id="budget-total">0,00 $</div>
+        <div class="budget-detail" id="budget-detail">0 reservation avec prix</div>
+      </div>
+      <div class="budget-icon">&#128176;</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Voyages</div></div>
+      <div class="stat"><div class="stat-num" id="stat-jours">0</div><div class="stat-label">Jours</div></div>
+      <div class="stat"><div class="stat-num" id="stat-lieux">0</div><div class="stat-label">Lieux</div></div>
+      <div class="stat"><div class="stat-num" id="stat-dests">0</div><div class="stat-label">Dest.</div></div>
+    </div>
+    <div class="search-bar">
+      <div class="search-wrap">
+        <input class="form-input" type="text" id="search-input" placeholder="Rechercher..." oninput="renderList()">
+      </div>
+    </div>
+    <div class="filter-row">
+      <button class="filter-chip active" onclick="setFilter('tous',this)">Tous</button>
+      <button class="filter-chip" onclick="setFilter('hotel',this)">Hotel</button>
+      <button class="filter-chip" onclick="setFilter('camping',this)">Camping</button>
+      <button class="filter-chip" onclick="setFilter('autre',this)">Autre</button>
+    </div>
+    <div class="voyages-list" id="voyages-list"></div>
+  </div>
+
+  <!-- PAGE: FORMULAIRE -->
+  <div class="page" id="page-form">
+    <div class="page-header">
+      <h1 id="form-page-title">Nouveau voyage</h1>
+      <p>Remplis les informations de ton voyage</p>
+    </div>
+    <div class="form-scroll">
+      <input type="hidden" id="edit-id">
+      <div class="form-group">
+        <label class="form-label">Nom du voyage</label>
+        <input type="text" class="form-input" id="f-nom" placeholder="Ex: Road trip Gaspesie">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Destination / Region</label>
+        <input type="text" class="form-input" id="f-destination" placeholder="Ex: Gaspesie, Quebec">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type d'hebergement</label>
+        <div class="type-btns">
+          <button class="type-btn" data-type="hotel" onclick="selectType('hotel')">Hotel</button>
+          <button class="type-btn" data-type="camping" onclick="selectType('camping')">Camping</button>
+          <button class="type-btn" data-type="autre" onclick="selectType('autre')">Autre</button>
+        </div>
+        <input type="hidden" id="f-type">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nom de l'hebergement</label>
+        <input type="text" class="form-input" id="f-hebergement" placeholder="Ex: Camping du Lac, Hotel Manoir...">
+      </div>
+      <div class="date-row">
+        <div class="form-group"><label class="form-label">Date depart</label><input type="date" class="form-input" id="f-debut"></div>
+        <div class="form-group"><label class="form-label">Date retour</label><input type="date" class="form-input" id="f-fin"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Prix de reservation (CAD $)</label>
+        <div class="prix-input-wrap">
+          <input type="number" class="form-input" id="f-prix" placeholder="0.00" min="0" step="0.01">
+          <span class="prix-currency">CAD $</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lieux a visiter</label>
+        <div class="lieu-input-row">
+          <input type="text" class="form-input" id="f-lieu-input" placeholder="Ajouter un lieu..." onkeydown="if(event.key==='Enter'){addLieu();event.preventDefault();}">
+          <button class="btn-add-lieu" onclick="addLieu()">+</button>
+        </div>
+        <div class="form-lieux-list" id="form-lieux-list"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-input" id="f-notes" placeholder="Budget, reservations, choses a apporter..."></textarea>
+      </div>
+      <button class="btn-save" onclick="saveVoyage()">Enregistrer</button>
+      <button class="btn-cancel-form" onclick="goToList()">Annuler</button>
+    </div>
+  </div>
+
+  <!-- PAGE: FICHIERS -->
+  <div class="page" id="page-fichiers">
+    <div class="page-header">
+      <h1>Fichiers</h1>
+      <p>Export, import et sauvegardes nommees</p>
+    </div>
+    <div class="fichiers-scroll">
+
+      <div class="action-card">
+        <div class="action-card-title">Export / Import CSV</div>
+        <div class="action-card-desc">Exporte tous tes voyages en fichier .csv compatible Excel et Google Sheets. Reimporte un CSV precedemment exporte pour restaurer tes donnees.</div>
+        <button class="btn-action btn-export-csv" onclick="exportCSV()">Exporter en .csv</button>
+        <button class="btn-action btn-import-csv" onclick="document.getElementById('csv-input').click()">Importer un .csv</button>
+        <input type="file" id="csv-input" accept=".csv" onchange="importCSV(this)">
+      </div>
+
+      <div class="action-card">
+        <div class="action-card-title">Sauvegardes nommees</div>
+        <div class="action-card-desc">Enregistre tes voyages sous un nom personnalise (ex: "Ete 2025", "Road trip Gaspesie") pour gerer plusieurs listes en parallele.</div>
+        <button class="btn-action btn-save-file" onclick="promptSaveFile()">Sauvegarder sous un nom...</button>
+        <button class="btn-action btn-load-file" onclick="document.getElementById('json-input').click()">Charger un fichier .json</button>
+        <input type="file" id="json-input" accept=".json" onchange="loadJsonFile(this)">
+      </div>
+
+      <div id="saved-files-section">
+        <div class="section-title">Sauvegardes locales</div>
+        <div class="fichiers-list" id="fichiers-list"></div>
+      </div>
+
+      <div class="action-card" style="border-color:rgba(224,92,122,0.3);">
+        <div class="action-card-title" style="color:var(--rose);">Zone de danger</div>
+        <div class="action-card-desc">Efface tous les voyages actuellement en memoire. Irreversible sans sauvegarde prealable.</div>
+        <button class="btn-action btn-danger" onclick="clearAll()">Effacer tous les voyages</button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<nav id="bottom-nav">
+  <button class="nav-btn active" id="nav-list" onclick="goToList()">
+    <span class="nav-icon">&#127758;</span>Voyages
+  </button>
+  <button class="nav-btn" id="nav-add" onclick="goToAdd()">
+    <span class="nav-icon">&#10133;</span>Nouveau
+  </button>
+  <button class="nav-btn" id="nav-fichiers" onclick="goToFichiers()">
+    <span class="nav-icon">&#128193;</span>Fichiers
+  </button>
+</nav>
+
+<button class="fab" id="fab" onclick="goToAdd()">+</button>
+
+<div id="map-panel">
+  <div id="map-panel-header">
+    <div id="map-panel-title">---</div>
+    <div class="map-actions">
+      <button class="map-open-btn" onclick="openInMaps()">Ouvrir</button>
+      <button class="map-close-btn" onclick="closeMap()">X</button>
+    </div>
+  </div>
+  <div id="map-iframe-wrap">
+    <div id="map-loading"><div class="spinner"></div>Chargement...</div>
+    <iframe id="map-iframe" title="Carte" allowfullscreen loading="lazy"></iframe>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div id="modal-overlay">
+  <div id="modal-box">
+    <h3>Sauvegarder sous...</h3>
+    <p>Donne un nom a cette sauvegarde. Elle sera stockee localement dans ton navigateur.</p>
+    <input type="text" id="modal-input" placeholder="Ex: Ete 2025, Road trip Gaspesie..." maxlength="60">
+    <div class="modal-btns">
+      <button class="modal-btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="modal-btn-ok" onclick="confirmSaveFile()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var voyages = JSON.parse(localStorage.getItem('mesVoyages') || '[]');
+  var formLieux = [];
+  var currentFilter = 'tous';
+  var currentMapUrl = '';
+
+  var mapsIconSvg = '<svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>';
+
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+    if (id === 'page-list') document.getElementById('nav-list').classList.add('active');
+    if (id === 'page-form') document.getElementById('nav-add').classList.add('active');
+    if (id === 'page-fichiers') document.getElementById('nav-fichiers').classList.add('active');
+    document.getElementById('fab').style.display = id === 'page-list' ? 'flex' : 'none';
+    closeMap();
+  }
+
+  function goToList() { showPage('page-list'); renderList(); }
+  function goToFichiers() { showPage('page-fichiers'); renderFichiers(); }
+  function goToAdd() { resetForm(); document.getElementById('form-page-title').textContent = 'Nouveau voyage'; showPage('page-form'); }
+
+  function showMap(query, label) {
+    var encoded = encodeURIComponent(query);
+    currentMapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encoded;
+    var embedUrl = 'https://maps.google.com/maps?q=' + encoded + '&output=embed&z=14';
+    document.getElementById('map-panel-title').textContent = label;
+    document.getElementById('map-loading').style.display = 'flex';
+    var iframe = document.getElementById('map-iframe');
+    iframe.style.opacity = '0';
+    iframe.src = embedUrl;
+    iframe.onload = function() { document.getElementById('map-loading').style.display = 'none'; iframe.style.opacity = '1'; iframe.style.transition = 'opacity 0.3s'; };
+    document.getElementById('map-panel').classList.add('visible');
+  }
+
+  function closeMap() {
+    document.getElementById('map-panel').classList.remove('visible');
+    setTimeout(function(){ document.getElementById('map-iframe').src = ''; }, 250);
+  }
+
+  function openInMaps() { if (currentMapUrl) window.open(currentMapUrl, '_blank'); }
+
+  function selectType(type) {
+    document.getElementById('f-type').value = type;
+    document.querySelectorAll('.type-btn').forEach(function(b){ b.className = 'type-btn'; if (b.dataset.type === type) b.classList.add('active-' + type); });
+  }
+
+  function addLieu() {
+    var inp = document.getElementById('f-lieu-input');
+    var val = inp.value.trim();
+    if (!val) return;
+    formLieux.push(val); inp.value = ''; renderFormLieux();
+  }
+
+  function removeFormLieu(i) { formLieux.splice(i, 1); renderFormLieux(); }
+
+  function renderFormLieux() {
+    document.getElementById('form-lieux-list').innerHTML = formLieux.map(function(l, i){
+      return '<div class="form-lieu-tag" onclick="removeFormLieu(' + i + ')">' + l + ' <span class="del">x</span></div>';
+    }).join('');
+  }
+
+  function resetForm() {
+    ['edit-id','f-nom','f-destination','f-type','f-hebergement','f-debut','f-fin','f-prix','f-notes'].forEach(function(id){ document.getElementById(id).value = ''; });
+    document.querySelectorAll('.type-btn').forEach(function(b){ b.className = 'type-btn'; });
+    formLieux = []; renderFormLieux();
+  }
+
+  function saveVoyage() {
+    var nom = document.getElementById('f-nom').value.trim();
+    var dest = document.getElementById('f-destination').value.trim();
+    if (!nom || !dest) { showToast('Nom et destination requis'); return; }
+    var debut = document.getElementById('f-debut').value;
+    var fin = document.getElementById('f-fin').value;
+    var jours = debut && fin ? Math.max(0, Math.ceil((new Date(fin) - new Date(debut)) / 86400000)) : 0;
+    var prixRaw = document.getElementById('f-prix').value;
+    var prix = prixRaw !== '' ? parseFloat(prixRaw) : null;
+    var editId = document.getElementById('edit-id').value;
+    var voyage = { id: editId || Date.now().toString(), nom: nom, dest: dest, type: document.getElementById('f-type').value, heb: document.getElementById('f-hebergement').value.trim(), debut: debut, fin: fin, jours: jours, prix: prix, lieux: formLieux.slice(), notes: document.getElementById('f-notes').value.trim() };
+    if (editId) {
+      var idx = voyages.findIndex(function(v){ return v.id === editId; });
+      if (idx !== -1) voyages[idx] = voyage;
+      showToast('Voyage modifie !');
+    } else {
+      voyages.unshift(voyage);
+      showToast('Voyage ajoute !');
+    }
+    localStorage.setItem('mesVoyages', JSON.stringify(voyages));
+    goToList();
+  }
+
+  function editVoyage(id) {
+    var v = voyages.find(function(x){ return x.id === id; });
+    if (!v) return;
+    resetForm();
+    document.getElementById('edit-id').value = v.id;
+    document.getElementById('f-nom').value = v.nom;
+    document.getElementById('f-destination').value = v.dest;
+    document.getElementById('f-hebergement').value = v.heb || '';
+    document.getElementById('f-debut').value = v.debut || '';
+    document.getElementById('f-fin').value = v.fin || '';
+    document.getElementById('f-prix').value = v.prix != null ? v.prix : '';
+    document.getElementById('f-notes').value = v.notes || '';
+    formLieux = (v.lieux || []).slice(); renderFormLieux();
+    if (v.type) selectType(v.type);
+    document.getElementById('form-page-title').textContent = 'Modifier le voyage';
+    showPage('page-form');
+  }
+
+  function deleteVoyage(id) {
+    if (!confirm('Supprimer ce voyage ?')) return;
+    voyages = voyages.filter(function(v){ return v.id !== id; });
+    localStorage.setItem('mesVoyages', JSON.stringify(voyages));
+    showToast('Voyage supprime');
+    renderList();
+  }
+
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-chip').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    renderList();
+  }
+
+  function renderList() {
+    var search = (document.getElementById('search-input').value || '').toLowerCase();
+    var list = voyages;
+    if (currentFilter !== 'tous') list = list.filter(function(v){ return v.type === currentFilter; });
+    if (search) list = list.filter(function(v){
+      return v.nom.toLowerCase().includes(search) || v.dest.toLowerCase().includes(search) || (v.heb && v.heb.toLowerCase().includes(search)) || (v.lieux && v.lieux.some(function(l){ return l.toLowerCase().includes(search); }));
+    });
+
+    document.getElementById('stat-total').textContent = voyages.length;
+    document.getElementById('stat-jours').textContent = voyages.reduce(function(s,v){ return s + (v.jours||0); }, 0);
+    document.getElementById('stat-lieux').textContent = voyages.reduce(function(s,v){ return s + (v.lieux ? v.lieux.length : 0); }, 0);
+    document.getElementById('stat-dests').textContent = new Set(voyages.map(function(v){ return v.dest.split(',')[0].trim().toLowerCase(); })).size;
+
+    var withPrix = voyages.filter(function(v){ return v.prix != null && v.prix > 0; });
+    var total = withPrix.reduce(function(s,v){ return s + v.prix; }, 0);
+    document.getElementById('budget-total').textContent = total.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' });
+    document.getElementById('budget-detail').textContent = withPrix.length + ' reservation' + (withPrix.length > 1 ? 's' : '') + ' avec prix';
+
+    var container = document.getElementById('voyages-list');
+    if (!list.length) {
+      container.innerHTML = '<div class="empty-state"><div class="emoji">&#127758;</div><h3>Aucun voyage</h3><p>Appuie sur + pour ajouter ton premier voyage !</p></div>';
+      return;
+    }
+
+    container.innerHTML = list.map(function(v) {
+      var type = v.type || 'autre';
+      var typeLabel = type === 'hotel' ? 'Hotel' : type === 'camping' ? 'Camping' : 'Autre';
+      var dateStr = v.debut ? fd(v.debut) + (v.fin ? ' -> ' + fd(v.fin) : '') : 'Dates non definies';
+      var dq = escQ(v.dest);
+      var hq = escQ((v.heb || '') + ' ' + v.dest);
+      var hl = escQ(v.heb || '');
+      var prixHtml = v.prix != null && v.prix > 0 ? '<span class="prix-badge">' + parseFloat(v.prix).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' }) + '</span>' : '';
+      var lieuxHtml = '';
+      if (v.lieux && v.lieux.length) {
+        lieuxHtml = '<div class="lieux-section"><div class="lieux-title">Lieux a visiter</div><div class="lieux-list">' + v.lieux.map(function(l){
+          var lq = escQ(l + ' ' + v.dest); var ll = escQ(l);
+          return '<div class="lieu-row"><span class="lieu-name">' + l + '</span><button class="maps-btn" onclick="showMap(\'' + lq + '\',\'' + ll + '\')">' + mapsIconSvg + ' Maps</button></div>';
+        }).join('') + '</div></div>';
+      }
+      var notesHtml = v.notes ? '<div class="card-notes">' + v.notes + '</div>' : '';
+      var vid = v.id;
+
+      return '<div class="voyage-card"><div class="card-stripe ' + type + '"></div><div class="card-body"><div class="card-top"><div class="card-title">' + v.nom + '</div><span class="card-badge ' + type + '">' + typeLabel + '</span></div><div class="card-meta"><div class="card-meta-row"><strong>' + v.dest + '</strong><button class="maps-btn" onclick="showMap(\'' + dq + '\',\'' + dq + '\')">' + mapsIconSvg + ' Maps</button></div>' + (v.heb ? '<div class="card-meta-row">' + v.heb + ' <button class="maps-btn" onclick="showMap(\'' + hq + '\',\'' + hl + '\')">' + mapsIconSvg + ' Maps</button></div>' : '') + '<div class="card-meta-row">' + dateStr + (v.jours ? '<span class="jours-badge">' + v.jours + ' jour' + (v.jours > 1 ? 's' : '') + '</span>' : '') + prixHtml + '</div></div>' + lieuxHtml + notesHtml + '</div><div class="card-actions"><button class="btn-edit" onclick="editVoyage(\'' + vid + '\')">Modifier</button><button class="btn-del" onclick="deleteVoyage(\'' + vid + '\')">Supprimer</button></div></div>';
+    }).join('');
+  }
+
+  function escQ(s) { return (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+  function fd(d) {
+    if (!d) return '';
+    var parts = d.split('-');
+    var mois = ['jan','fev','mar','avr','mai','jun','jul','aou','sep','oct','nov','dec'];
+    return parts[2] + ' ' + mois[parseInt(parts[1])-1] + ' ' + parts[0];
+  }
+
+  /* CSV */
+  function exportCSV() {
+    if (!voyages.length) { showToast('Aucun voyage a exporter'); return; }
+    var headers = ['id','nom','destination','type','hebergement','debut','fin','jours','prix_cad','lieux','notes'];
+    var rows = voyages.map(function(v){
+      return [v.id, csvCell(v.nom), csvCell(v.dest), csvCell(v.type||''), csvCell(v.heb||''), v.debut||'', v.fin||'', v.jours||0, v.prix!=null?v.prix:'', csvCell((v.lieux||[]).join(' | ')), csvCell(v.notes||'')].join(',');
+    });
+    var csv = [headers.join(',')].concat(rows).join('\n');
+    var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); a.href = url; a.download = 'mes-voyages-' + dateStamp() + '.csv'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSV exporte !');
+  }
+
+  function csvCell(s) {
+    s = String(s || '');
+    if (s.indexOf(',') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  function importCSV(input) {
+    var file = input.files[0]; if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        var text = e.target.result;
+        if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+        var lines = text.split('\n').filter(function(l){ return l.trim(); });
+        if (lines.length < 2) { showToast('Fichier CSV invalide'); return; }
+        var headers = parseCSVLine(lines[0]);
+        var imported = [];
+        for (var i = 1; i < lines.length; i++) {
+          var cols = parseCSVLine(lines[i]);
+          if (cols.length < 3) continue;
+          var row = {};
+          headers.forEach(function(h, idx){ row[h.trim()] = (cols[idx]||'').trim(); });
+          imported.push({ id: row.id||Date.now().toString()+i, nom: row.nom||'', dest: row.destination||'', type: row.type||'autre', heb: row.hebergement||'', debut: row.debut||'', fin: row.fin||'', jours: parseInt(row.jours)||0, prix: (row.prix_cad!==''&&row.prix_cad!=null&&row.prix_cad!==undefined) ? parseFloat(row.prix_cad) : null, lieux: row.lieux ? row.lieux.split('|').map(function(l){return l.trim();}).filter(Boolean) : [], notes: row.notes||'' });
+        }
+        if (!imported.length) { showToast('Aucun voyage trouve'); return; }
+        if (confirm('Importer ' + imported.length + ' voyage(s) ?\nIls seront fusionnes avec les voyages existants.')) {
+          var existingIds = new Set(voyages.map(function(v){ return v.id; }));
+          var newOnes = imported.filter(function(v){ return !existingIds.has(v.id); });
+          voyages = newOnes.concat(voyages);
+          localStorage.setItem('mesVoyages', JSON.stringify(voyages));
+          showToast(newOnes.length + ' voyage(s) importes !');
+          renderList();
+        }
+      } catch(err) { showToast('Erreur import CSV'); console.error(err); }
+      input.value = '';
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function parseCSVLine(line) {
+    var result = []; var cur = ''; var inQ = false;
+    for (var i = 0; i < line.length; i++) {
+      var c = line[i];
+      if (c === '"') { if (inQ && line[i+1]==='"') { cur+='"'; i++; } else inQ=!inQ; }
+      else if (c === ',' && !inQ) { result.push(cur); cur=''; }
+      else cur+=c;
+    }
+    result.push(cur); return result;
+  }
+
+  /* FICHIERS NOMMES */
+  function getSavedFiles() { return JSON.parse(localStorage.getItem('mesVoyagesFichiers') || '{}'); }
+
+  function promptSaveFile() {
+    document.getElementById('modal-input').value = '';
+    document.getElementById('modal-overlay').classList.add('show');
+    setTimeout(function(){ document.getElementById('modal-input').focus(); }, 100);
+  }
+
+  function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); }
+
+  document.getElementById('modal-input').addEventListener('keydown', function(e){ if (e.key==='Enter') confirmSaveFile(); if (e.key==='Escape') closeModal(); });
+
+  function confirmSaveFile() {
+    var name = document.getElementById('modal-input').value.trim();
+    if (!name) { showToast('Donne un nom a la sauvegarde'); return; }
+    var files = getSavedFiles();
+    files[name] = { name: name, date: new Date().toISOString(), count: voyages.length, data: voyages };
+    localStorage.setItem('mesVoyagesFichiers', JSON.stringify(files));
+    closeModal(); showToast('"' + name + '" sauvegarde !'); renderFichiers();
+  }
+
+  function loadSavedFile(name) {
+    var files = getSavedFiles(); if (!files[name]) return;
+    if (!confirm('Charger "' + name + '" ?\nCela remplacera les voyages actuellement affiches.')) return;
+    voyages = files[name].data;
+    localStorage.setItem('mesVoyages', JSON.stringify(voyages));
+    showToast('"' + name + '" charge !'); goToList();
+  }
+
+  function deleteSavedFile(name) {
+    if (!confirm('Supprimer la sauvegarde "' + name + '" ?')) return;
+    var files = getSavedFiles(); delete files[name];
+    localStorage.setItem('mesVoyagesFichiers', JSON.stringify(files));
+    showToast('Sauvegarde supprimee'); renderFichiers();
+  }
+
+  function exportJsonFile(name) {
+    var files = getSavedFiles(); if (!files[name]) return;
+    var blob = new Blob([JSON.stringify(files[name].data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); a.href = url; a.download = name.replace(/[^a-zA-Z0-9_\-]/g, '_') + '.json'; a.click();
+    URL.revokeObjectURL(url); showToast('"' + name + '" telecharge !');
+  }
+
+  function loadJsonFile(input) {
+    var file = input.files[0]; if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        var data = JSON.parse(e.target.result);
+        if (!Array.isArray(data)) { showToast('Fichier JSON invalide'); return; }
+        var name = file.name.replace('.json','');
+        if (!confirm('Charger "' + file.name + '" (' + data.length + ' voyages) ?\nCela remplacera les voyages actuels.')) return;
+        voyages = data;
+        localStorage.setItem('mesVoyages', JSON.stringify(voyages));
+        var files = getSavedFiles();
+        files[name] = { name: name, date: new Date().toISOString(), count: data.length, data: data };
+        localStorage.setItem('mesVoyagesFichiers', JSON.stringify(files));
+        showToast('Fichier charge !'); goToList();
+      } catch(err) { showToast('Erreur lecture fichier'); }
+      input.value = '';
+    };
+    reader.readAsText(file);
+  }
+
+  function renderFichiers() {
+    var files = getSavedFiles();
+    var keys = Object.keys(files).sort(function(a,b){ return new Date(files[b].date) - new Date(files[a].date); });
+    var container = document.getElementById('fichiers-list');
+    if (!keys.length) { container.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;padding:0.5rem 0;">Aucune sauvegarde locale.</div>'; return; }
+    container.innerHTML = keys.map(function(k) {
+      var f = files[k];
+      var d = new Date(f.date);
+      var dateStr = d.toLocaleDateString('fr-CA', { day:'2-digit', month:'short', year:'numeric' }) + ' ' + d.toLocaleTimeString('fr-CA', { hour:'2-digit', minute:'2-digit' });
+      var kS = k.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return '<div class="fichier-item"><div class="fichier-icon">&#128194;</div><div class="fichier-info"><div class="fichier-name">' + f.name + '</div><div class="fichier-meta">' + f.count + ' voyage' + (f.count>1?'s':'') + ' - ' + dateStr + '</div></div><div class="fichier-btns"><button class="fich-btn" onclick="exportJsonFile(\'' + kS + '\')">dl</button><button class="fich-btn load" onclick="loadSavedFile(\'' + kS + '\')">charger</button><button class="fich-btn del" onclick="deleteSavedFile(\'' + kS + '\')">del</button></div></div>';
+    }).join('');
+  }
+
+  function clearAll() {
+    if (!confirm('Effacer tous les voyages actuels ?\nCette action est irreversible sans sauvegarde.')) return;
+    voyages = []; localStorage.setItem('mesVoyages', JSON.stringify(voyages));
+    showToast('Tous les voyages effaces'); renderList();
+  }
+
+  function dateStamp() { return new Date().toISOString().slice(0,10); }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 2600);
+  }
+
+  var deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault(); deferredPrompt = e;
+    if (!localStorage.getItem('installDismissed')) document.getElementById('install-banner').classList.add('show');
+  });
+  document.getElementById('btn-install').addEventListener('click', async function(){
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    var result = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    document.getElementById('install-banner').classList.remove('show');
+    if (result.outcome === 'accepted') showToast('App installee !');
+  });
+  function dismissInstall() { localStorage.setItem('installDismissed','1'); document.getElementById('install-banner').classList.remove('show'); }
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(function(){});
+
+  renderList();
+</script>
+</body>
+</html>
